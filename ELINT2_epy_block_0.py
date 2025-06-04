@@ -6,56 +6,52 @@ to get ports and parameters of your block. The arguments to __init__  will
 be the parameters. All of them are required to have default values!
 """
 
-import numpy as np
+
+import pmt
 from gnuradio import gr
 
-
-class blk(gr.sync_block):  # other base classes are basic_block, decim_block, interp_block
-    """Embedded Python Block example - a simple multiply const"""
-
-    def __init__(self, example_param=1.0):  # only default arguments here
-        """arguments to this function show up as parameters in GRC"""
-        gr.sync_block.__init__(
-            self,
-            name='Embedded Python Block',   # will show up in GRC
-            in_sig=[np.complex64],
-            out_sig=[np.complex64]
-        )
-        # if an attribute with the same name as a parameter is found,
-        # a callback is registered (properties work, too).
-        self.example_param = example_param
-
-    def work(self, input_items, output_items):
-        """example: multiply with constant"""
-        output_items[0][:] = input_items[0] * self.example_param
-        return len(output_items[0])
-import pmt
-
-class blk(gr.sync_block):
-    def __init__(self):
-        gr.sync_block.__init__(self,
-            name="Freq Sweeper",
-            in_sig=None,
-            out_sig=None)
-
-        self.start = 100e6
-        self.stop = 110e6
-        self.step = 1e6
+class blk(gr.basic_block):
+    def __init__(self, start=1e6, stop=5.5e6, step=100e3):
+        gr.basic_block.__init__(self, name="Freq Sweeper", in_sig=None, out_sig=None)
+        self.start = start
+        self.stop = stop
+        self.step = step
         self.freq = self.start
+        self.running = True
+        self.message_port_register_in(pmt.intern("cmd"))
+        self.set_msg_handler(pmt.intern("cmd"), self.handle_cmd)
+    
+    def handle_cmd(self, msg):
+        # DEBUG: print the type and contents of the message
+        print("Freq Sweeper got msg:", msg, "type:", type(msg))
+        # Accept both strings and PMT symbols and floats for debugging
+        if pmt.is_symbol(msg):
+            m = pmt.symbol_to_string(msg)
+        elif pmt.is_string(msg):
+            m = pmt.symbol_to_string(msg)
+        elif isinstance(msg, str):
+            m = msg
+        elif pmt.is_number(msg):
+            # Ignore floats, but print for debug
+            print("Ignored float message:", msg)
+            return
+        else:
+            m = str(msg)
 
-        self.declare_sample_delay(0)
-
-        self.message_port_register_in(pmt.intern("in"))
-        self.set_msg_handler(pmt.intern("in"), self.handle_msg)
-
-    def handle_msg(self, msg):
-        self.freq += self.step
-        if self.freq > self.stop:
-            self.freq = self.start
-
-        # Schimbă valoarea variabilei globale `freq`
-        try:
-            self.set_variable("freq", self.freq)
-        except Exception as e:
-           print(f"[sweep] current freq: {self.freq / 1e6:.2f} MHz")
-
+        if m == "TICK" and self.running:
+            self.freq += self.step
+            if self.freq > self.stop:
+                self.freq = self.start
+            try:
+                self.set_variable("freq", self.freq)
+                print("Set freq to", self.freq)
+            except Exception as e:
+                print("Freq update error:", e)
+        elif m == "START":
+            self.running = True
+            print("Freq Sweeper: started")
+        elif m == "STOP":
+            self.running = False
+            print("Freq Sweeper: stopped")
+        else:
+            print("Freq Sweeper: Unknown message", m)

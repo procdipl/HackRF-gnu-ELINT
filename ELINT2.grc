@@ -79,7 +79,71 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [544, 224.0]
+    coordinate: [416, 192.0]
+    rotation: 0
+    state: enabled
+- name: blocks_message_strobe_0
+  id: blocks_message_strobe
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    msg: pmt.intern("TICK")
+    period: '10000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [352, 456.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_0
+  id: epy_block
+  parameters:
+    _source_code: "\"\"\"\nEmbedded Python Blocks:\n\nEach time this file is saved,\
+      \ GRC will instantiate the first class it finds\nto get ports and parameters\
+      \ of your block. The arguments to __init__  will\nbe the parameters. All of\
+      \ them are required to have default values!\n\"\"\"\n\n\nimport pmt\nfrom gnuradio\
+      \ import gr\n\nclass blk(gr.basic_block):\n    def __init__(self, start=1e6,\
+      \ stop=5.5e6, step=100e3):\n        gr.basic_block.__init__(self, name=\"Freq\
+      \ Sweeper\", in_sig=None, out_sig=None)\n        self.start = start\n      \
+      \  self.stop = stop\n        self.step = step\n        self.freq = self.start\n\
+      \        self.running = True\n        self.message_port_register_in(pmt.intern(\"\
+      cmd\"))\n        self.set_msg_handler(pmt.intern(\"cmd\"), self.handle_cmd)\n\
+      \    \n    def handle_cmd(self, msg):\n        # DEBUG: print the type and contents\
+      \ of the message\n        print(\"Freq Sweeper got msg:\", msg, \"type:\", type(msg))\n\
+      \        # Accept both strings and PMT symbols and floats for debugging\n  \
+      \      if pmt.is_symbol(msg):\n            m = pmt.symbol_to_string(msg)\n \
+      \       elif pmt.is_string(msg):\n            m = pmt.symbol_to_string(msg)\n\
+      \        elif isinstance(msg, str):\n            m = msg\n        elif pmt.is_number(msg):\n\
+      \            # Ignore floats, but print for debug\n            print(\"Ignored\
+      \ float message:\", msg)\n            return\n        else:\n            m =\
+      \ str(msg)\n\n        if m == \"TICK\" and self.running:\n            self.freq\
+      \ += self.step\n            if self.freq > self.stop:\n                self.freq\
+      \ = self.start\n            try:\n                self.set_variable(\"freq\"\
+      , self.freq)\n                print(\"Set freq to\", self.freq)\n          \
+      \  except Exception as e:\n                print(\"Freq update error:\", e)\n\
+      \        elif m == \"START\":\n            self.running = True\n           \
+      \ print(\"Freq Sweeper: started\")\n        elif m == \"STOP\":\n          \
+      \  self.running = False\n            print(\"Freq Sweeper: stopped\")\n    \
+      \    else:\n            print(\"Freq Sweeper: Unknown message\", m)"
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    start: 1e6
+    step: 100e6
+    stop: 5.5e9
+  states:
+    _io_cache: ('Freq Sweeper', 'blk', [('start', '1000000.0'), ('stop', '5500000.0'),
+      ('step', '100000.0')], [('cmd', 'message', 1)], [], '', ['start', 'step', 'stop'])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [584, 448.0]
     rotation: 0
     state: enabled
 - name: osmosdr_source_0
@@ -152,7 +216,7 @@ blocks:
     bb_gain7: '20'
     bb_gain8: '20'
     bb_gain9: '20'
-    bw0: '0'
+    bw0: 2e6
     bw1: '0'
     bw10: '0'
     bw11: '0'
@@ -257,7 +321,7 @@ blocks:
     dc_offset_mode7: '0'
     dc_offset_mode8: '0'
     dc_offset_mode9: '0'
-    freq0: 1e6
+    freq0: freq
     freq1: 100e6
     freq10: 100e6
     freq11: 100e6
@@ -436,7 +500,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [272, 196.0]
+    coordinate: [176, 116.0]
     rotation: 0
     state: enabled
 - name: qtgui_freq_sink_x_0_0
@@ -517,7 +581,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [744, 24.0]
+    coordinate: [768, 184.0]
     rotation: 0
     state: enabled
 - name: qtgui_waterfall_sink_x_0
@@ -578,7 +642,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [528, 104.0]
+    coordinate: [416, 104.0]
     rotation: 0
     state: enabled
 - name: qtgui_waterfall_sink_x_0_0
@@ -639,7 +703,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [744, 104.0]
+    coordinate: [768, 272.0]
     rotation: 0
     state: enabled
 - name: rational_resampler_xxx_0
@@ -659,16 +723,55 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [728, 256.0]
+    coordinate: [592, 224.0]
+    rotation: 0
+    state: enabled
+- name: variable_qtgui_msg_push_button_0
+  id: variable_qtgui_msg_push_button
+  parameters:
+    comment: ''
+    gui_hint: ''
+    label: STOP
+    msgName: pressed
+    relBackgroundColor: black
+    relFontColor: red
+    type: string
+    value: STOP
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [320, 520.0]
+    rotation: 0
+    state: enabled
+- name: variable_qtgui_msg_push_button_1
+  id: variable_qtgui_msg_push_button
+  parameters:
+    comment: ''
+    gui_hint: ''
+    label: START
+    msgName: pressed
+    relBackgroundColor: black
+    relFontColor: green
+    type: string
+    value: START
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [320, 360.0]
     rotation: 0
     state: enabled
 
 connections:
 - [band_pass_filter_0, '0', rational_resampler_xxx_0, '0']
+- [blocks_message_strobe_0, strobe, epy_block_0, cmd]
 - [osmosdr_source_0, '0', band_pass_filter_0, '0']
 - [osmosdr_source_0, '0', qtgui_waterfall_sink_x_0, '0']
 - [rational_resampler_xxx_0, '0', qtgui_freq_sink_x_0_0, '0']
 - [rational_resampler_xxx_0, '0', qtgui_waterfall_sink_x_0_0, '0']
+- [variable_qtgui_msg_push_button_0, pressed, epy_block_0, cmd]
+- [variable_qtgui_msg_push_button_1, pressed, epy_block_0, cmd]
 
 metadata:
   file_format: 1

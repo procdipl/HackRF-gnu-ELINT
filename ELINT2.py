@@ -11,6 +11,8 @@
 
 from PyQt5 import Qt
 from gnuradio import qtgui
+from gnuradio import blocks
+import pmt
 from gnuradio import filter
 from gnuradio.filter import firdes
 from gnuradio import gr
@@ -21,6 +23,7 @@ from PyQt5 import Qt
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
+import ELINT2_epy_block_0 as epy_block_0  # embedded python block
 import osmosdr
 import time
 import sip
@@ -69,6 +72,14 @@ class ELINT2(gr.top_block, Qt.QWidget):
         # Blocks
         ##################################################
 
+        self.variable_qtgui_msg_push_button_1 = _variable_qtgui_msg_push_button_1_toggle_button = qtgui.MsgPushButton('START', 'pressed','START',"black","green")
+        self.variable_qtgui_msg_push_button_1 = _variable_qtgui_msg_push_button_1_toggle_button
+
+        self.top_layout.addWidget(_variable_qtgui_msg_push_button_1_toggle_button)
+        self.variable_qtgui_msg_push_button_0 = _variable_qtgui_msg_push_button_0_toggle_button = qtgui.MsgPushButton('STOP', 'pressed','STOP',"black","red")
+        self.variable_qtgui_msg_push_button_0 = _variable_qtgui_msg_push_button_0_toggle_button
+
+        self.top_layout.addWidget(_variable_qtgui_msg_push_button_0_toggle_button)
         self.rational_resampler_xxx_0 = filter.rational_resampler_ccc(
                 interpolation=1,
                 decimation=20,
@@ -191,7 +202,7 @@ class ELINT2(gr.top_block, Qt.QWidget):
         )
         self.osmosdr_source_0.set_time_unknown_pps(osmosdr.time_spec_t())
         self.osmosdr_source_0.set_sample_rate(samp_rate)
-        self.osmosdr_source_0.set_center_freq(1e6, 0)
+        self.osmosdr_source_0.set_center_freq(freq, 0)
         self.osmosdr_source_0.set_freq_corr(0, 0)
         self.osmosdr_source_0.set_dc_offset_mode(0, 0)
         self.osmosdr_source_0.set_iq_balance_mode(0, 0)
@@ -200,7 +211,9 @@ class ELINT2(gr.top_block, Qt.QWidget):
         self.osmosdr_source_0.set_if_gain(20, 0)
         self.osmosdr_source_0.set_bb_gain(20, 0)
         self.osmosdr_source_0.set_antenna('', 0)
-        self.osmosdr_source_0.set_bandwidth(0, 0)
+        self.osmosdr_source_0.set_bandwidth(2e6, 0)
+        self.epy_block_0 = epy_block_0.blk(start=1e6, stop=5.5e9, step=100e6)
+        self.blocks_message_strobe_0 = blocks.message_strobe(pmt.intern("TICK"), 10000)
         self.band_pass_filter_0 = filter.fir_filter_ccf(
             1,
             firdes.band_pass(
@@ -216,6 +229,9 @@ class ELINT2(gr.top_block, Qt.QWidget):
         ##################################################
         # Connections
         ##################################################
+        self.msg_connect((self.blocks_message_strobe_0, 'strobe'), (self.epy_block_0, 'cmd'))
+        self.msg_connect((self.variable_qtgui_msg_push_button_0, 'pressed'), (self.epy_block_0, 'cmd'))
+        self.msg_connect((self.variable_qtgui_msg_push_button_1, 'pressed'), (self.epy_block_0, 'cmd'))
         self.connect((self.band_pass_filter_0, 0), (self.rational_resampler_xxx_0, 0))
         self.connect((self.osmosdr_source_0, 0), (self.band_pass_filter_0, 0))
         self.connect((self.osmosdr_source_0, 0), (self.qtgui_waterfall_sink_x_0, 0))
@@ -247,6 +263,7 @@ class ELINT2(gr.top_block, Qt.QWidget):
 
     def set_freq(self, freq):
         self.freq = freq
+        self.osmosdr_source_0.set_center_freq(self.freq, 0)
         self.qtgui_freq_sink_x_0_0.set_frequency_range(self.freq, self.samp_rate)
         self.qtgui_waterfall_sink_x_0.set_frequency_range(self.freq, self.samp_rate)
         self.qtgui_waterfall_sink_x_0_0.set_frequency_range(self.freq, self.samp_rate)
